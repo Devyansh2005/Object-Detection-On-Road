@@ -1,9 +1,11 @@
 from fastapi import FastAPI, WebSocket, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from . import database, auth, vision
+import database, auth, vision
 import uvicorn
 import asyncio
+import os
 
 app = FastAPI(title="AI Traffic Detection API")
 
@@ -19,10 +21,6 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     database.init_db()
-
-@app.get("/")
-def read_root():
-    return {"message": "AI Traffic Detection System API"}
 
 @app.post("/token")
 async def login(form_data: dict):
@@ -48,14 +46,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/api/analytics")
 async def get_analytics(db: Session = Depends(database.SessionLocal)):
-    # Return mock analytics data for now
     return {
-        "today_stats": {
-            "cars": 452,
-            "pedestrians": 124,
-            "bikes": 58,
-            "trucks": 42
-        },
+        "today_stats": {"cars": 452, "pedestrians": 124, "bikes": 58, "trucks": 42},
         "hourly_data": [
             {"hour": "08:00", "count": 20},
             {"hour": "09:00", "count": 45},
@@ -72,6 +64,15 @@ async def get_alerts():
         {"id": 1, "time": "10:30 AM", "type": "High Density", "priority": "High", "location": "Camera 01"},
         {"id": 2, "time": "11:15 AM", "type": "Unauthorized Blockage", "priority": "Medium", "location": "Camera 03"},
     ]
+
+# Mount frontend static files
+# We check multiple possible locations depending on how it's deployed
+frontend_path = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(frontend_path):
+    frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

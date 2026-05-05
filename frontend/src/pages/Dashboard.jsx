@@ -9,7 +9,9 @@ const Dashboard = () => {
 
   const startDetection = () => {
     setIsDetecting(true);
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/stream';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host || 'localhost:8000';
+    const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${host}/ws/stream`;
     ws.current = new WebSocket(wsUrl);
     ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data);

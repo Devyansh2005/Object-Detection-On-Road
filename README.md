@@ -1,3 +1,12 @@
+---
+title: AI Traffic Detection System
+emoji: 🚦
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # AI-Based Real-Time Traffic Object Detection System
 
 This is a complete AI-powered real-time traffic monitoring and object detection web application. It uses YOLOv8 for detecting multiple road objects (cars, pedestrians, bikes, etc.) and provides a modern, dark-themed dashboard for traffic management.
