@@ -1,0 +1,25 @@
+services:
+  # 1. Backend Service (FastAPI + YOLOv8)
+  - type: web
+    name: traffic-monitor-backend
+    env: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    plan: starter # YOLOv8 requires a bit more RAM than the free tier usually provides
+    region: oregon # Choose a region close to you
+    envVars:
+      - key: PORT
+        value: 8000
+
+  # 2. Frontend Service (React + Vite)
+  - type: web
+    name: traffic-monitor-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_WS_URL
+        # NOTE: Once you deploy, replace this with your actual backend URL 
+        # e.g., wss://traffic-monitor-backend.onrender.com/ws/stream
+        value: wss://traffic-monitor-backend.onrender.com/ws/stream

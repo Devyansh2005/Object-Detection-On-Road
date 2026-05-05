@@ -9,7 +9,8 @@ const Dashboard = () => {
 
   const startDetection = () => {
     setIsDetecting(true);
-    ws.current = new WebSocket('ws://localhost:8000/ws/stream');
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/stream';
+    ws.current = new WebSocket(wsUrl);
     ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       setImageSrc(`data:image/jpeg;base64,${data.image}`);
