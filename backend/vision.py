@@ -53,7 +53,7 @@ class TrafficDetector:
                 
                 # Run YOLOv8 inference on even smaller frame (320px)
                 #imgs_input = cv2.resize(frame, (320, 180))
-                results = model.predict(frame, classes=self.classes, conf=self.confidence_threshold, verbose=False, imgsz=320)
+                results = model.predict(frame, classes=self.classes, conf=self.confidence_threshold, verbose=False, imgsz=416)
                 
                 # Plot directly on the 640x360 frame
                 annotated_frame = results[0].plot()
@@ -98,7 +98,7 @@ class TrafficDetector:
                     try:
                         issues = [
                             ("Traffic Flow Analysis", "Medium", "Active volume tracking at intersection."),
-                            ("Safety Warning", "High" if person_count > 0 else "Low", "Human activity detected in traffic lane."),
+                            ("Human Safety", "High" if (person_count > 0 or bike_count > 0) else "Low", "Vulnerable road users detected in traffic lane."),
                             ("Emissions Index", "Medium", "Calculated CO2 density per vehicle load."),
                             ("Noise Pollution", "Low", "Real-time acoustic profile analysis."),
                             ("Travel Time Index", "Medium", "Current flow vs historical baseline.")
@@ -133,7 +133,7 @@ class TrafficDetector:
                         log = database.TrafficLog(
                             car_count=counts_dict.get('car', 0),
                             pedestrian_count=counts_dict.get('person', 0),
-                            bike_count=counts_dict.get('bicycle', 0),
+                            bike_count=counts_dict.get('bicycle', 0) + counts_dict.get('motorcycle', 0),
                             truck_count=counts_dict.get('truck', 0),
                             bus_count=counts_dict.get('bus', 0),
                             avg_confidence=self.confidence_threshold,
