@@ -73,7 +73,7 @@ const LiveFeed = () => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [alerts, setAlerts] = useState([]);
   
-  const addAlert = (alert) => {
+  const addAlert = React.useCallback((alert) => {
     setAlerts(prev => {
       const newAlert = { ...alert, id: Date.now(), time: new Date().toLocaleTimeString() };
       if (prev.length === 0 || prev[0].msg !== newAlert.msg) {
@@ -81,7 +81,7 @@ const LiveFeed = () => {
       }
       return prev;
     });
-  };
+  }, []);
 
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto bg-[#0a0a0f] custom-scrollbar">
@@ -114,9 +114,11 @@ const LiveFeed = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Stream Grid */}
         <div className="lg:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <CameraFeed id={1} label="CAM-01 (NORTH)" isGlobalDetecting={isDetecting} addAlert={addAlert} />
             <CameraFeed id={2} label="CAM-02 (SOUTH)" isGlobalDetecting={isDetecting} addAlert={addAlert} />
+            <CameraFeed id={3} label="CAM-03 (EAST)" isGlobalDetecting={isDetecting} addAlert={addAlert} />
+            <CameraFeed id={4} label="CAM-04 (WEST)" isGlobalDetecting={isDetecting} addAlert={addAlert} />
           </div>
           
           <div className="glass p-8 rounded-[2rem] border-white/5 bg-gradient-to-br from-white/5 to-transparent">
@@ -132,7 +134,7 @@ const LiveFeed = () => {
              <div className="grid grid-cols-3 gap-6">
                 <div className="space-y-1">
                    <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Active Links</p>
-                   <p className="text-2xl font-black text-white">{isDetecting ? '02 / 02' : '00 / 02'}</p>
+                   <p className="text-2xl font-black text-white">{isDetecting ? '04 / 04' : '00 / 04'}</p>
                 </div>
                 <div className="space-y-1">
                    <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Packet Loss</p>

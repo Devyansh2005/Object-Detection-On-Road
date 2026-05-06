@@ -37,7 +37,13 @@ async def login(form_data: dict):
 @app.websocket("/ws/stream/{camera_id}")
 async def websocket_endpoint(websocket: WebSocket, camera_id: int):
     await websocket.accept()
-    video_source = "user_traffic.mp4" if camera_id == 1 else "camera_2.mp4"
+    sources = {
+        1: "user_traffic.mp4",
+        2: "camera_2.mp4",
+        3: "camera_3.mp4",
+        4: "camera_4.mp4"
+    }
+    video_source = sources.get(camera_id, "user_traffic.mp4")
     try:
         await vision.detector.detect_stream(websocket, video_source=video_source)
     except Exception as e:

@@ -8,18 +8,29 @@ import json
 
 class TrafficDetector:
     def __init__(self, model_path='yolov8n.pt'):
-        self.model = YOLO(model_path)
+        self.model_path = model_path
         self.classes = [0, 1, 2, 3, 5, 7, 9, 10] 
-        self.class_names = self.model.names
-        self.confidence_threshold = 0.25
+        self.confidence_threshold = 0.15
 
     async def detect_stream(self, websocket, video_source='user_traffic.mp4'):
-        cap = cv2.VideoCapture(video_source)
-        if not cap.isOpened():
-            print(f"Error: Could not open video source {video_source}.")
+        print(f"DEBUG: Initializing stream for {video_source}")
+        # Initialize model inside the stream for thread safety in multi-camera setup
+        try:
+            model = YOLO(self.model_path)
+            self.class_names = model.names
+        except Exception as e:
+            print(f"DEBUG: Model init error: {e}")
             return
 
+        cap = cv2.VideoCapture(video_source)
+        if not cap.isOpened():
+            print(f"DEBUG Error: Could not open video source {video_source}.")
+            return
+
+        print(f"DEBUG: Started detection stream for {video_source}")
+        
         try:
+            frame_count = 0
             while True:
                 success, frame = cap.read()
                 if not success:
@@ -29,21 +40,26 @@ class TrafficDetector:
                     if not success:
                         break
                 
-                # Resize for performance if it's too large
-                if frame.shape[1] > 1280:
-                    frame = cv2.resize(frame, (1280, 720))
+                frame_count += 1
+                # Skip 3 out of 4 frames for maximum smoothness (Ultra-Performance)
+                if frame_count % 4 != 0:
+                    continue
+
+                # IMMEDIATELY resize the 4K frame to 480p to save CPU/Memory
+                # This is the single biggest performance boost
+                frame = cv2.resize(frame, (640, 360))
 
                 start_time = time.time()
                 
-                # Run YOLOv8 inference
-                results = self.model(frame, classes=self.classes, conf=self.confidence_threshold, verbose=False)
+                # Run YOLOv8 inference on even smaller frame (320px)
+                #imgs_input = cv2.resize(frame, (320, 180))
+                results = model.predict(frame, classes=self.classes, conf=self.confidence_threshold, verbose=False, imgsz=320)
                 
-                # Annotate frame
+                # Plot directly on the 640x360 frame
                 annotated_frame = results[0].plot()
                 
                 # Calculate metrics
                 fps = 1.0 / (time.time() - start_time)
-                counts = results[0].boxes.cls.unique().tolist()
                 detection_data = {
                     "fps": round(fps, 2),
                     "counts": {},
@@ -60,31 +76,38 @@ class TrafficDetector:
 
                 # Advanced Alert Logic
                 vehicle_count = sum([counts_dict.get(k, 0) for k in ['car', 'truck', 'bus', 'motorcycle']])
+                person_count = counts_dict.get('person', 0)
+                bike_count = counts_dict.get('bicycle', 0) + counts_dict.get('motorcycle', 0)
                 
-                if vehicle_count > 12:
+                if vehicle_count > 8 or person_count > 0 or bike_count > 0:
                     # Generate a primary alert for the stream
+                    alert_type = "High Density"
+                    if person_count > 0: alert_type = "Pedestrian Safety"
+                    elif bike_count > 2: alert_type = "Cyclist Warning"
+                    elif vehicle_count > 12: alert_type = "Critical Congestion"
+
                     detection_data["alert"] = {
-                        "type": "Critical Congestion",
-                        "priority": "High",
-                        "msg": "Extreme vehicle density detected at intersection.",
-                        "location": "Sector Alpha-4"
+                        "type": alert_type,
+                        "priority": "High" if vehicle_count > 12 or person_count > 0 else "Medium",
+                        "msg": f"Monitoring active incidents: {vehicle_count} vehicles, {person_count} pedestrians.",
+                        "location": f"Node-{video_source}"
                     }
                     
-                    # Store multiple derived issues in the DB for the Alerts page
+                    # Store multiple derived issues in the DB
                     db = database.SessionLocal()
                     try:
                         issues = [
-                            ("Traffic Congestion", "High", "Level 4 congestion exceeding capacity."),
-                            ("Slow Vehicle Movement", "Medium", "Average speed dropped below 15km/h."),
-                            ("Noise Pollution Alert", "Low", "Acoustic levels exceeding 85dB threshold."),
-                            ("High Travel Time", "Medium", "Estimated delay +12 minutes for this sector."),
-                            ("Carbon Emission Peak", "Medium", "Air quality index decreasing due to idling.")
+                            ("Traffic Flow Analysis", "Medium", "Active volume tracking at intersection."),
+                            ("Safety Warning", "High" if person_count > 0 else "Low", "Human activity detected in traffic lane."),
+                            ("Emissions Index", "Medium", "Calculated CO2 density per vehicle load."),
+                            ("Noise Pollution", "Low", "Real-time acoustic profile analysis."),
+                            ("Travel Time Index", "Medium", "Current flow vs historical baseline.")
                         ]
                         for i_type, i_pri, i_msg in issues:
                             alert = database.Alert(
                                 type=i_type,
                                 priority=i_pri,
-                                location="Sector Alpha-4",
+                                location=f"Node-{video_source}",
                                 msg=i_msg,
                                 confidence=0.98
                             )
@@ -95,9 +118,6 @@ class TrafficDetector:
                     finally:
                         db.close()
 
-                elif counts_dict.get('person', 0) > 0:
-                    pass 
-
                 # Extract boxes for frontend (if needed separately)
                 for box in results[0].boxes:
                     detection_data["objects"].append({
@@ -107,7 +127,7 @@ class TrafficDetector:
                     })
 
                 # Save to Database (occasionally or every N frames)
-                if int(time.time()) % 5 == 0: # Save every 5 seconds
+                if int(time.time()) % 10 == 0: # Save every 10 seconds per stream
                     db = database.SessionLocal()
                     try:
                         log = database.TrafficLog(
@@ -120,24 +140,14 @@ class TrafficDetector:
                             fps=round(fps, 2)
                         )
                         db.add(log)
-                        
-                        if "alert" in detection_data:
-                            alert = database.Alert(
-                                type=detection_data["alert"]["type"],
-                                priority=detection_data["alert"]["priority"],
-                                location=detection_data["alert"]["location"],
-                                confidence=0.9
-                            )
-                            db.add(alert)
-                        
                         db.commit()
                     except Exception as e:
                         print(f"DB Error: {e}")
                     finally:
                         db.close()
 
-                # Encode frame to base64
-                _, buffer = cv2.imencode('.jpg', annotated_frame)
+                # Encode frame to base64 with Ultra-Performance settings
+                _, buffer = cv2.imencode('.jpg', annotated_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
                 frame_base64 = base64.b64encode(buffer).decode('utf-8')
 
                 # Send frame and data via WebSocket
@@ -150,6 +160,7 @@ class TrafficDetector:
 
         finally:
             cap.release()
+            print(f"Stopped detection stream for {video_source}")
     def stop(self):
         pass
 
