@@ -1,4 +1,4 @@
-from sqlalchemy import create_all, Column, Integer, String, Float, DateTime, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import datetime
@@ -23,6 +23,7 @@ class Alert(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     type = Column(String) # 'High density', 'Congestion', etc.
     priority = Column(String) # 'High', 'Medium', 'Low'
+    msg = Column(String)
     location = Column(String)
     confidence = Column(Float)
     acknowledged = Column(Integer, default=0)
@@ -41,3 +42,10 @@ class TrafficLog(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

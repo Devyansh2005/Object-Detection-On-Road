@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Eye, EyeOff, Lock, User, Activity } from 'lucide-react';
 
+import background from '../assets/login-bg.png';
+
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -24,29 +26,25 @@ const Login = ({ onLogin }) => {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-        <motion.div 
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 20, repeat: Infinity }}
-          className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] bg-primary/20 blur-[120px] rounded-full"
+        <img 
+          src={background} 
+          className="w-full h-full object-cover scale-110 blur-sm opacity-50"
+          alt="background"
         />
-        <motion.div 
-          animate={{ scale: [1, 1.3, 1], rotate: [0, -90, 0], opacity: [0.1, 0.3, 0.1] }}
-          transition={{ duration: 25, repeat: Infinity }}
-          className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-secondary/20 blur-[120px] rounded-full"
-        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
       </div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass w-full max-w-md p-8 z-10 mx-4"
+        className="glass w-full max-w-md p-8 z-10 mx-4 border-white/5"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-primary/30">
-            <Activity className="w-10 h-10 text-primary" />
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-primary/30 neon-border">
+            <Shield className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Real-Time Traffic</h1>
-          <p className="text-white/50 text-sm">AI Powered Monitoring System</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight neon-text">Traffic Monitoring</h1>
+          <p className="text-white/50 text-sm font-medium tracking-widest uppercase mt-1">Smart City Control</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

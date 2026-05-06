@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Alerts from './pages/Alerts';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import LiveFeed from './pages/LiveFeed';
+import Reports from './pages/Reports';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -15,8 +17,10 @@ function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard': return <Dashboard />;
+      case 'live': return <LiveFeed />;
       case 'alerts': return <Alerts />;
       case 'analytics': return <Analytics />;
+      case 'reports': return <Reports />;
       case 'settings': return <Settings />;
       default: return <Dashboard />;
     }

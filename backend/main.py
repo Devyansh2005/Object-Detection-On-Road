@@ -34,36 +34,55 @@ async def login(form_data: dict):
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-@app.websocket("/ws/stream")
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket("/ws/stream/{camera_id}")
+async def websocket_endpoint(websocket: WebSocket, camera_id: int):
     await websocket.accept()
+    video_source = "user_traffic.mp4" if camera_id == 1 else "camera_2.mp4"
     try:
-        await vision.detector.detect_stream(websocket)
+        await vision.detector.detect_stream(websocket, video_source=video_source)
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        print(f"WebSocket error on camera {camera_id}: {e}")
     finally:
         vision.detector.stop()
 
 @app.get("/api/analytics")
-async def get_analytics(db: Session = Depends(database.SessionLocal)):
+async def get_analytics(db: Session = Depends(database.get_db)):
+    logs = db.query(database.TrafficLog).order_by(database.TrafficLog.timestamp.desc()).limit(10).all()
+    
+    # Format for charts
     return {
-        "today_stats": {"cars": 452, "pedestrians": 124, "bikes": 58, "trucks": 42},
-        "hourly_data": [
-            {"hour": "08:00", "count": 20},
-            {"hour": "09:00", "count": 45},
-            {"hour": "10:00", "count": 30},
-            {"hour": "11:00", "count": 25},
-            {"hour": "12:00", "count": 40},
-            {"hour": "13:00", "count": 55},
-        ]
+        "today_stats": {
+            "cars": sum([l.car_count for l in logs]) if logs else 0,
+            "pedestrians": sum([l.pedestrian_count for l in logs]) if logs else 0,
+            "bikes": sum([l.bike_count for l in logs]) if logs else 0,
+            "trucks": sum([l.truck_count for l in logs]) if logs else 0
+        },
+        "hourly_data": [{"hour": l.timestamp.strftime("%H:%M"), "count": l.car_count} for l in reversed(logs)]
     }
 
 @app.get("/api/alerts")
-async def get_alerts():
-    return [
-        {"id": 1, "time": "10:30 AM", "type": "High Density", "priority": "High", "location": "Camera 01"},
-        {"id": 2, "time": "11:15 AM", "type": "Unauthorized Blockage", "priority": "Medium", "location": "Camera 03"},
-    ]
+async def get_alerts(db: Session = Depends(database.get_db)):
+    alerts = db.query(database.Alert).order_by(database.Alert.timestamp.desc()).limit(5).all()
+    return [{
+        "id": a.id,
+        "time": a.timestamp.strftime("%H:%M"),
+        "type": a.type,
+        "priority": a.priority,
+        "msg": a.msg,
+        "location": a.location
+    } for a in alerts]
+
+@app.get("/api/reports")
+async def get_reports(db: Session = Depends(database.get_db)):
+    logs = db.query(database.TrafficLog).order_by(database.TrafficLog.timestamp.desc()).limit(50).all()
+    return [{
+        "id": l.id,
+        "timestamp": l.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "cars": l.car_count,
+        "pedestrians": l.pedestrian_count,
+        "trucks": l.truck_count,
+        "fps": l.fps
+    } for l in logs]
 
 # Mount frontend static files
 # We check multiple possible locations depending on how it's deployed

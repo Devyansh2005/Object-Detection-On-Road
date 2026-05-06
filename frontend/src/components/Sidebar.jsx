@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Video, Bell, BarChart3, FileText, Settings, LogOut, Activity } from 'lucide-react';
+import { LayoutDashboard, Video, Bell, BarChart3, FileText, Settings, LogOut, Activity, Shield } from 'lucide-react';
 
 const Sidebar = ({ activePage, setActivePage, onLogout }) => {
   const menuItems = [
@@ -19,12 +19,12 @@ const Sidebar = ({ activePage, setActivePage, onLogout }) => {
       className="w-64 h-screen bg-background border-r border-white/5 flex flex-col p-4 z-20"
     >
       <div className="flex items-center gap-3 px-4 py-8">
-        <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/30">
-          <Activity className="text-primary w-6 h-6" />
+        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/30 neon-border shadow-lg shadow-primary/10">
+          <Shield className="text-primary w-7 h-7" />
         </div>
         <div>
-          <h2 className="font-bold text-white tracking-tight">TRAFFIC AI</h2>
-          <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Control Center</p>
+          <h2 className="font-black text-xl text-white tracking-tighter leading-none">TRAFFIC AI</h2>
+          <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-1">Control Center</p>
         </div>
       </div>
 
